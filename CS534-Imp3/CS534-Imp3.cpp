@@ -21,7 +21,49 @@ using namespace std;
  */
 pair<int, bool> decisionStump(vector<pair<int, vector<int>>> examples, vector<double> weights) {
 	assert(examples.size() == weights.size());
+	
+	double maxProbAdjusted = -1000000000;
+	int bestFeature = 0;
+	bool inverse = false;
 
+	for(int i = 0; i < examples[1].second.size(); i++){
+		// if feature true, increment trueClass[i] where i is class label.  Otherwise, increment falseClass[i].
+		// index 0 = false, index 1 = true
+		vector<int> trueClass(2,0);
+		vector<int> falseClass(2,0);
+
+		for(int j = 0; j < examples.size(); j++){
+			if(examples[j].second[i] == 0){
+				// factor in weights too?
+				falseClass[examples[j].first] += weights[j];
+			}
+			else{
+				trueClass[examples[j].first] += weights[j];
+			}
+		}
+		// calculate probabilities - posProbs for direct correlation, invProbs for inverse correlation
+		double posProbs = 0;
+		double invProbs = 0;
+		// note to self -- make sure we're doing double division, not int.
+		
+		// calculate posProbs first -- remember factors to prevent division by zero!
+		posProbs = (((double)falseClass[0]) / ((double)falseClass[1] + (double)falseClass[0])) * (((double)trueClass[1]) / ((double)trueClass[0] + (double)trueClass[1]));
+
+		// calculate invProbs
+		invProbs = (((double)falseClass[1]) / ((double)falseClass[1] + (double)falseClass[0])) * (((double)trueClass[0]) / ((double)trueClass[0] + (double)trueClass[1]));
+
+		if(posProbs >= invProbs && posProbs > maxProbAdjusted){
+			maxProbAdjusted = posProbs;
+			bestFeature = i;
+			inverse = false;
+		}
+		else if(invProbs > posProbs && invProbs > maxProbAdjusted){
+			maxProbAdjusted = invProbs;
+			bestFeature = i;
+			inverse = true;
+		}
+	}
+	return make_pair(bestFeature, inverse);
 }
 
 // inputs: test, training, ensemble size??

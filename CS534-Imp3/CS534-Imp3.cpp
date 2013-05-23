@@ -69,13 +69,25 @@ pair<int, bool> decisionStump(vector<pair<int, vector<int>>> examples, vector<do
 // inputs: test, training, ensemble size??
 // output: error
 void boost(void) {
-
+	/*
+		for 0 to ensemble size
+			decision stump
+			get error
+			update weights
+			normalize weights
+	*/
 }
 
 // inputs: test, training, ensemble size??
 // output: error (weighted or simple count??)
 void bag(void) {
-
+	/* for 0 to ensemble size
+			for 0 to example set size
+				pick random number from 0 to example set size
+				copy that example to new set
+			decision stump
+		majority vote of ensemble
+	*/
 }
 
 int _tmain(int argc, _TCHAR* argv[])

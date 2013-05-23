@@ -7,6 +7,7 @@
 #include <fstream>
 #include <string>
 #include <assert.h>
+#include <time.h>
 
 using namespace std;
 
@@ -68,10 +69,9 @@ pair<int, bool> decisionStump(vector<pair<int, vector<int>>> examples, vector<do
 	return make_pair(bestFeature, inverse);
 }
 
-// inputs: test, training, ensemble size
-// output: error
-void boost(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
-	
+// inputs: test, training, ensemble size??
+// output: error %
+double boost(vector<pair<int, vector<int>>> trainingData, vector<pair<int, vector<int>>> testData, int ensembleSize) {
 	/*
 		for 0 to ensemble size
 			decision stump
@@ -79,7 +79,14 @@ void boost(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
 			update weights
 			normalize weights
 	*/
-	
+	vector<double> weights(trainingData.size(), 1 / trainingData.size());
+	for(int i = 0; i < ensembleSize; i++) {
+		pair<int, bool> result;
+		double error = 0;
+		result = decisionStump(trainingData, weights, error);
+	}
+
+	return 0;
 }
 
 // inputs: test, training, ensemble size??
@@ -92,20 +99,21 @@ void bag(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
 			decision stump
 		majority vote of ensemble
 	*/
-	vector<vector<pair<int, vector<int>>>> ensemble;
+	vector<pair<int, vector<int>>> samples;
+	vector<vector<pair<int, vector<int>>>> ensemble(ensembleSize, samples);
 	vector<pair<int, bool>> vote;
 	vector<double> weights(trainingData.size(), 1/trainingData.size());
 	
 	for(int i = 0; i < ensembleSize; i++){
 		// create bootstrap sample
 		for(int j = 0; j < trainingData.size(); j++){
-			ensemble.push_back(trainingData[rand() % trainingData.size()];
+			ensemble[i].push_back(trainingData[rand() % trainingData.size()]);
 		}
 		// run learning algorithm (decision stump)
-		vote.push_back(decisionStump(ensemble[i]);
+		//vote.push_back(decisionStump(ensemble[i]));
 	}
 	
-	vector<int> voteTotals = trainingData[1].second.size();
+	vector<int> voteTotals(trainingData[1].second.size(), 0);
 	for(int i = 0; i < vote.size(); i++){
 	}
 	
@@ -160,6 +168,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 		testData.push_back(make_pair(y, x));
 	}
+
 
 	return 0;
 }

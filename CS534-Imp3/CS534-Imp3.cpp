@@ -71,7 +71,7 @@ pair<int, bool> decisionStump(vector<pair<int, vector<int>>> examples, vector<do
 
 // inputs: test, training, ensemble size??
 // output: error %
-double boost(vector<pair<int, vector<int>>> trainingData, vector<pair<int, vector<int>>> testData, int ensembleSize) {
+pair<int, bool> boost(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
 	/*
 		for 0 to ensemble size
 			decision stump
@@ -80,8 +80,8 @@ double boost(vector<pair<int, vector<int>>> trainingData, vector<pair<int, vecto
 			normalize weights
 	*/
 	vector<double> weights(trainingData.size(), 1.0 / trainingData.size());
+	pair<int, bool> result;
 	for(int i = 0; i < ensembleSize; i++) {
-		pair<int, bool> result;
 		double error = 0;
 		result = decisionStump(trainingData, weights, error);
 		double alpha = 0.5*log((1 - error) / error);
@@ -120,7 +120,7 @@ double boost(vector<pair<int, vector<int>>> trainingData, vector<pair<int, vecto
 		}
 	}
 
-	return 0;
+	return result;
 }
 
 // inputs: test, training, ensemble size??
@@ -144,7 +144,9 @@ pair<int, bool> bag(vector<pair<int, vector<int>>> trainingData, int ensembleSiz
 			ensemble[i].push_back(trainingData[rand() % trainingData.size()]);
 		}
 		// run learning algorithm (decision stump)
-		//vote.push_back(decisionStump(ensemble[i]));
+		double error;
+		vector<double> dummyWeights(trainingData.size(), 1.0 / trainingData.size());
+		vote.push_back(decisionStump(ensemble[i], dummyWeights, error));
 	}
 	
 	vector<int> voteTotals(trainingData[1].second.size(), 0);
@@ -188,7 +190,7 @@ double classify(vector<pair<int, vector<int>>> testData, pair<int, bool> classif
 
 	if(classifier.second == false){
 		// non-inverted
-		for(i = 0; i < testData.size(); i++){
+		for(int i = 0; i < testData.size(); i++){
 			if(testData[i].first == testData[i].second[classifier.first]){
 				testCorrect++;
 			}
@@ -196,7 +198,7 @@ double classify(vector<pair<int, vector<int>>> testData, pair<int, bool> classif
 	}
 	else{
 		// inverted
-		for(i = 0; i < testData.size(); i++){
+		for(int i = 0; i < testData.size(); i++){
 			if(testData[i].first != testData[i].second[classifier.first]){
 				testCorrect++;
 			}
@@ -256,8 +258,24 @@ int _tmain(int argc, _TCHAR* argv[])
 		testData.push_back(make_pair(y, x));
 	}
 
-	boost(trainingData, testData, 5);
-
+	vector<double> boostTrainError;
+	vector<double> boostTestError;
+	vector<double> bagTrainError;
+	vector<double> bagTestError;
+	for(int size = 5; size < 35; size += 5) {
+		auto boostH = boost(trainingData, 30);
+		auto bagH = bag(trainingData, 30);
+		boostTrainError.push_back(classify(trainingData, boostH));
+		boostTestError.push_back(classify(testData, boostH));
+		double bagTotalTrainError = 0;
+		double bagTotalTestError = 0;
+		for(int i = 0; i < 5; i++) {
+			bagTotalTrainError += classify(trainingData, bagH);
+			bagTotalTestError += classify(testData, bagH);
+		}
+		bagTrainError.push_back(bagTotalTrainError / 5);
+		bagTestError.push_back(bagTotalTestError / 5);
+	}
 
 	return 0;
 }

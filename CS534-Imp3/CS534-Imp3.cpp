@@ -69,8 +69,8 @@ pair<int, bool> decisionStump(vector<pair<int, vector<int>>> examples, vector<do
 	return make_pair(bestFeature, inverse);
 }
 
-// inputs: test, training, ensemble size??
-// output: error %
+// inputs: training, ensemble size
+// output: hypothesis
 pair<int, bool> boost(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
 	/*
 		for 0 to ensemble size
@@ -123,8 +123,8 @@ pair<int, bool> boost(vector<pair<int, vector<int>>> trainingData, int ensembleS
 	return result;
 }
 
-// inputs: test, training, ensemble size??
-// output: error (weighted or simple count??)
+// inputs: test, ensemble size
+// output: hypothesis
 pair<int, bool> bag(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
 	/* for 0 to ensemble size
 			for 0 to example set size

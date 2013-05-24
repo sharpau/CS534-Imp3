@@ -30,8 +30,8 @@ pair<int, bool> decisionStump(vector<pair<int, vector<int>>> examples, vector<do
 	for(int i = 0; i < examples[1].second.size(); i++){
 		// if feature true, increment trueClass[i] where i is class label.  Otherwise, increment falseClass[i].
 		// index 0 = false, index 1 = true
-		vector<int> trueClass(2,0);
-		vector<int> falseClass(2,0);
+		vector<double> trueClass(2,0);
+		vector<double> falseClass(2,0);
 
 		for(int j = 0; j < examples.size(); j++){
 			if(examples[j].second[i] == 0){
@@ -48,10 +48,10 @@ pair<int, bool> decisionStump(vector<pair<int, vector<int>>> examples, vector<do
 		// note to self -- make sure we're doing double division, not int.
 		
 		// calculate posProbs first -- remember factors to prevent division by zero!
-		posProbs = (((double)falseClass[0]) + ((double)trueClass[1])) / ((double)falseClass[1] + (double)falseClass[0] + (double)trueClass[0] + (double)trueClass[1]);
+		posProbs = ((falseClass[0]) + (trueClass[1])) / (falseClass[1] + falseClass[0] + trueClass[0] + trueClass[1]);
 
 		// calculate invProbs
-		invProbs = (((double)falseClass[1]) + (double)trueClass[0]) / ((double)trueClass[0] + (double)trueClass[1] + (double)falseClass[1] + (double)falseClass[0]);
+		invProbs = ((falseClass[1]) + trueClass[0]) / (trueClass[0] + trueClass[1] + falseClass[1] + falseClass[0]);
 
 		if(posProbs >= invProbs && posProbs > maxProbAdjusted){
 			maxProbAdjusted = posProbs;
@@ -79,11 +79,45 @@ double boost(vector<pair<int, vector<int>>> trainingData, vector<pair<int, vecto
 			update weights
 			normalize weights
 	*/
-	vector<double> weights(trainingData.size(), 1 / trainingData.size());
+	vector<double> weights(trainingData.size(), 1.0 / trainingData.size());
 	for(int i = 0; i < ensembleSize; i++) {
 		pair<int, bool> result;
 		double error = 0;
 		result = decisionStump(trainingData, weights, error);
+		double alpha = 0.5*log((1 - error) / error);
+
+		// update weights
+		double sum = 0;
+		for(int j = 0; j < trainingData.size(); j++) {
+			// check whether prediction was correct
+			if(!result.second) {
+				// we predict using this feature
+				if(trainingData[j].first == trainingData[j].second[result.first]) {
+					// correct prediction
+					weights[j] *= exp(-1.0 * alpha);
+				}
+				else {
+					// incorrect
+					weights[j] *= exp(alpha);
+				}
+			}
+			else {
+				// predict using inverse of feature
+				if(trainingData[j].first == !trainingData[j].second[result.first]) {
+					// correct prediction
+					weights[j] *= exp(-1.0 * alpha);
+				}
+				else {
+					// incorrect
+					weights[j] *= exp(alpha);
+				}
+			}
+			sum += weights[j];
+		}
+		// normalize weights
+		for(int j = 0; j < weights.size(); j++) {
+			weights[j] /= sum;
+		}
 	}
 
 	return 0;
@@ -221,6 +255,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 		testData.push_back(make_pair(y, x));
 	}
+
+	boost(trainingData, testData, 5);
 
 
 	return 0;

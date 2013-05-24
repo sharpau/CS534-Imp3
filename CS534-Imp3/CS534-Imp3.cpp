@@ -91,7 +91,7 @@ double boost(vector<pair<int, vector<int>>> trainingData, vector<pair<int, vecto
 
 // inputs: test, training, ensemble size??
 // output: error (weighted or simple count??)
-void bag(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
+pair<int, bool> bag(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
 	/* for 0 to ensemble size
 			for 0 to example set size
 				pick random number from 0 to example set size
@@ -102,7 +102,7 @@ void bag(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
 	vector<pair<int, vector<int>>> samples;
 	vector<vector<pair<int, vector<int>>>> ensemble(ensembleSize, samples);
 	vector<pair<int, bool>> vote;
-	vector<double> weights(trainingData.size(), 1/trainingData.size());
+	vector<double> weights(trainingData.size(), 1.0/trainingData.size());
 	
 	for(int i = 0; i < ensembleSize; i++){
 		// create bootstrap sample
@@ -114,9 +114,62 @@ void bag(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
 	}
 	
 	vector<int> voteTotals(trainingData[1].second.size(), 0);
+	vector<int> voteInverseTotals(trainingData[1].second.size(), 0);
+	
+	// tally votes
 	for(int i = 0; i < vote.size(); i++){
+		voteTotals[vote[i].first]++;
+		// is this inverted?
+		if(vote[i].second == true){
+			voteInverseTotals[vote[i].first]++;
+		}
 	}
 	
+	// variables for vote results
+	int currentMax = 0;
+	int bestFeature = 0;
+	bool inverse = false;
+	// get vote results
+	for(int i = 0; i < voteTotals.size(); i++){
+		if(voteTotals[i] > currentMax){
+			currentMax = voteTotals[i];
+			bestFeature = i;
+		}
+	}
+	// is the true/false classification inverted?
+	if((double) voteInverseTotals[bestFeature] / (double) voteTotals[bestFeature] > 0.5){
+		inverse = true;
+	}
+
+	return make_pair(bestFeature, inverse);
+	
+}
+
+double classify(vector<pair<int, vector<int>>> testData, pair<int, bool> classifier){
+
+	double testError;
+	int testCorrect = 0;
+	
+	// classify data
+
+	if(classifier.second == false){
+		// non-inverted
+		for(i = 0; i < testData.size(); i++){
+			if(testData[i].first == testData[i].second[classifier.first]){
+				testCorrect++;
+			}
+		}
+	}
+	else{
+		// inverted
+		for(i = 0; i < testData.size(); i++){
+			if(testData[i].first != testData[i].second[classifier.first]){
+				testCorrect++;
+			}
+		}
+	}
+	
+	return (1.0 - (double)testCorrect / (double)testData.size());
 }
 
 int _tmain(int argc, _TCHAR* argv[])

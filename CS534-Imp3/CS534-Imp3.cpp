@@ -263,13 +263,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	vector<double> bagTrainError;
 	vector<double> bagTestError;
 	for(int size = 5; size < 35; size += 5) {
-		auto boostH = boost(trainingData, 30);
-		auto bagH = bag(trainingData, 30);
+		auto boostH = boost(trainingData, size);
 		boostTrainError.push_back(classify(trainingData, boostH));
 		boostTestError.push_back(classify(testData, boostH));
 		double bagTotalTrainError = 0;
 		double bagTotalTestError = 0;
 		for(int i = 0; i < 5; i++) {
+			auto bagH = bag(trainingData, size);
 			bagTotalTrainError += classify(trainingData, bagH);
 			bagTotalTestError += classify(testData, bagH);
 		}

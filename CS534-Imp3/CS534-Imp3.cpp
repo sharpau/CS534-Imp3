@@ -94,22 +94,22 @@ double boost(vector<pair<int, vector<int>>> trainingData, vector<pair<int, vecto
 				// we predict using this feature
 				if(trainingData[j].first == trainingData[j].second[result.first]) {
 					// correct prediction
-					weights[j] *= exp(alpha);
+					weights[j] *= exp(-1.0 * alpha);
 				}
 				else {
 					// incorrect
-					weights[j] *= exp(-1 * alpha);
+					weights[j] *= exp(alpha);
 				}
 			}
 			else {
 				// predict using inverse of feature
 				if(trainingData[j].first == !trainingData[j].second[result.first]) {
 					// correct prediction
-					weights[j] *= exp(alpha);
+					weights[j] *= exp(-1.0 * alpha);
 				}
 				else {
 					// incorrect
-					weights[j] *= exp(-1 * alpha);
+					weights[j] *= exp(alpha);
 				}
 			}
 			sum += weights[j];

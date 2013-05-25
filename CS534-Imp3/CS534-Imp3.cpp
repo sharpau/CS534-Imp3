@@ -79,12 +79,18 @@ pair<int, bool> boost(vector<pair<int, vector<int>>> trainingData, int ensembleS
 			update weights
 			normalize weights
 	*/
+	vector<pair<int, bool>> vote;
+	vector<double> voteWeight;
 	vector<double> weights(trainingData.size(), 1.0 / trainingData.size());
 	pair<int, bool> result;
 	for(int i = 0; i < ensembleSize; i++) {
 		double error = 0;
 		result = decisionStump(trainingData, weights, error);
 		double alpha = 0.5*log((1 - error) / error);
+
+		// add to vote ensemble
+		vote.push_back(result);
+		voteWeight.push_back(alpha);
 
 		// update weights
 		double sum = 0;
@@ -120,7 +126,35 @@ pair<int, bool> boost(vector<pair<int, vector<int>>> trainingData, int ensembleS
 		}
 	}
 
-	return result;
+	vector<double> voteTotals(trainingData[1].second.size(), 0);
+	vector<double> voteInverseTotals(trainingData[1].second.size(), 0);
+	
+	// tally votes
+	for(int i = 0; i < vote.size(); i++){
+		voteTotals[vote[i].first] += voteWeight[i];
+		// is this inverted?
+		if(vote[i].second == true){
+			voteInverseTotals[vote[i].first] += voteWeight[i];
+		}
+	}
+	
+	// variables for vote results
+	double currentMax = 0;
+	int bestFeature = 0;
+	bool inverse = false;
+	// get vote results
+	for(int i = 0; i < voteTotals.size(); i++){
+		if(voteTotals[i] > currentMax){
+			currentMax = voteTotals[i];
+			bestFeature = i;
+		}
+	}
+	// is the true/false classification inverted?
+	if((double) voteInverseTotals[bestFeature] / (double) voteTotals[bestFeature] > 0.5){
+		inverse = true;
+	}
+
+	return make_pair(bestFeature, inverse);
 }
 
 // inputs: test, ensemble size

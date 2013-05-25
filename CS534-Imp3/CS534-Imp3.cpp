@@ -273,8 +273,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			bagTotalTrainError += classify(trainingData, bagH);
 			bagTotalTestError += classify(testData, bagH);
 		}
-		bagTrainError.push_back(bagTotalTrainError / 5);
-		bagTestError.push_back(bagTotalTestError / 5);
+		bagTrainError.push_back(bagTotalTrainError / 5.0);
+		bagTestError.push_back(bagTotalTestError / 5.0);
 	}
 
 	return 0;

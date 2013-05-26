@@ -70,8 +70,8 @@ pair<int, bool> decisionStump(vector<pair<int, vector<int>>> examples, vector<do
 }
 
 // inputs: training, ensemble size
-// output: hypothesis
-pair<int, bool> boost(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
+// output: ensemble of hypothesis-weight pairs
+pair<vector<pair<int, bool>>, vector<double>> boost(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
 	/*
 		for 0 to ensemble size
 			decision stump
@@ -83,10 +83,11 @@ pair<int, bool> boost(vector<pair<int, vector<int>>> trainingData, int ensembleS
 	vector<double> voteWeight;
 	vector<double> weights(trainingData.size(), 1.0 / trainingData.size());
 	pair<int, bool> result;
+	double alpha;
 	for(int i = 0; i < ensembleSize; i++) {
 		double error = 0;
 		result = decisionStump(trainingData, weights, error);
-		double alpha = 0.5*log((1 - error) / error);
+		alpha = 0.5*log((1 - error) / error);
 
 		// add to vote ensemble
 		vote.push_back(result);
@@ -125,41 +126,43 @@ pair<int, bool> boost(vector<pair<int, vector<int>>> trainingData, int ensembleS
 			weights[j] /= sum;
 		}
 	}
+	return make_pair(vote, voteWeight);
 
-	vector<double> voteTotals(trainingData[1].second.size(), 0);
-	vector<double> voteInverseTotals(trainingData[1].second.size(), 0);
-	
-	// tally votes
-	for(int i = 0; i < vote.size(); i++){
-		voteTotals[vote[i].first] += voteWeight[i];
-		// is this inverted?
-		if(vote[i].second == true){
-			voteInverseTotals[vote[i].first] += voteWeight[i];
-		}
-	}
-	
-	// variables for vote results
-	double currentMax = 0;
-	int bestFeature = 0;
-	bool inverse = false;
-	// get vote results
-	for(int i = 0; i < voteTotals.size(); i++){
-		if(voteTotals[i] > currentMax){
-			currentMax = voteTotals[i];
-			bestFeature = i;
-		}
-	}
-	// is the true/false classification inverted?
-	if((double) voteInverseTotals[bestFeature] / (double) voteTotals[bestFeature] > 0.5){
-		inverse = true;
-	}
+	// TODO: MOVE THIS CODE TO classify()
+	//vector<double> voteTotals(trainingData[1].second.size(), 0);
+	//vector<double> voteInverseTotals(trainingData[1].second.size(), 0);
+	//
+	//// tally votes
+	//for(int i = 0; i < vote.size(); i++){
+	//	voteTotals[vote[i].first] += voteWeight[i];
+	//	// is this inverted?
+	//	if(vote[i].second == true){
+	//		voteInverseTotals[vote[i].first] += voteWeight[i];
+	//	}
+	//}
+	//
+	//// variables for vote results
+	//double currentMax = 0;
+	//int bestFeature = 0;
+	//bool inverse = false;
+	//// get vote results
+	//for(int i = 0; i < voteTotals.size(); i++){
+	//	if(voteTotals[i] > currentMax){
+	//		currentMax = voteTotals[i];
+	//		bestFeature = i;
+	//	}
+	//}
+	//// is the true/false classification inverted?
+	//if((double) voteInverseTotals[bestFeature] / (double) voteTotals[bestFeature] > 0.5){
+	//	inverse = true;
+	//}
 
-	return make_pair(bestFeature, inverse);
+	//return make_pair(bestFeature, inverse);
 }
 
 // inputs: test, ensemble size
-// output: hypothesis
-pair<int, bool> bag(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
+// output: ensemble of hypotheses, all weighted equally
+pair<vector<pair<int, bool>>, vector<double>> bag(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
 	/* for 0 to ensemble size
 			for 0 to example set size
 				pick random number from 0 to example set size
@@ -182,39 +185,44 @@ pair<int, bool> bag(vector<pair<int, vector<int>>> trainingData, int ensembleSiz
 		vector<double> dummyWeights(trainingData.size(), 1.0 / trainingData.size());
 		vote.push_back(decisionStump(ensemble[i], dummyWeights, error));
 	}
+
+	vector<double> dummyVoteWeights(vote.size(), 1.0f/vote.size());
+	return make_pair(vote, dummyVoteWeights);
 	
-	vector<int> voteTotals(trainingData[1].second.size(), 0);
-	vector<int> voteInverseTotals(trainingData[1].second.size(), 0);
+	// TODO: MOVE THIS CODE TO classify()
+	//vector<int> voteTotals(trainingData[1].second.size(), 0);
+	//vector<int> voteInverseTotals(trainingData[1].second.size(), 0);
 	
 	// tally votes
-	for(int i = 0; i < vote.size(); i++){
-		voteTotals[vote[i].first]++;
-		// is this inverted?
-		if(vote[i].second == true){
-			voteInverseTotals[vote[i].first]++;
-		}
-	}
+	//for(int i = 0; i < vote.size(); i++){
+	//	voteTotals[vote[i].first]++;
+	//	// is this inverted?
+	//	if(vote[i].second == true){
+	//		voteInverseTotals[vote[i].first]++;
+	//	}
+	//}
 	
-	// variables for vote results
-	int currentMax = 0;
-	int bestFeature = 0;
-	bool inverse = false;
-	// get vote results
-	for(int i = 0; i < voteTotals.size(); i++){
-		if(voteTotals[i] > currentMax){
-			currentMax = voteTotals[i];
-			bestFeature = i;
-		}
-	}
-	// is the true/false classification inverted?
-	if((double) voteInverseTotals[bestFeature] / (double) voteTotals[bestFeature] > 0.5){
-		inverse = true;
-	}
+	//// variables for vote results
+	//int currentMax = 0;
+	//int bestFeature = 0;
+	//bool inverse = false;
+	//// get vote results
+	//for(int i = 0; i < voteTotals.size(); i++){
+	//	if(voteTotals[i] > currentMax){
+	//		currentMax = voteTotals[i];
+	//		bestFeature = i;
+	//	}
+	//}
+	//// is the true/false classification inverted?
+	//if((double) voteInverseTotals[bestFeature] / (double) voteTotals[bestFeature] > 0.5){
+	//	inverse = true;
+	//}
 
-	return make_pair(bestFeature, inverse);
+	//return make_pair(bestFeature, inverse);
 	
 }
 
+// TODO: update 'hypothesis' input to be an actual ensemble (ie set of hypothesis-weight pairs)
 double classify(vector<pair<int, vector<int>>> testData, pair<int, bool> classifier){
 
 	double testError;
@@ -292,20 +300,21 @@ int _tmain(int argc, _TCHAR* argv[])
 		testData.push_back(make_pair(y, x));
 	}
 
+	// TODO: update classify
 	vector<double> boostTrainError;
 	vector<double> boostTestError;
 	vector<double> bagTrainError;
 	vector<double> bagTestError;
 	for(int size = 5; size < 35; size += 5) {
 		auto boostH = boost(trainingData, size);
-		boostTrainError.push_back(classify(trainingData, boostH));
-		boostTestError.push_back(classify(testData, boostH));
+		//boostTrainError.push_back(classify(trainingData, boostH));
+		//boostTestError.push_back(classify(testData, boostH));
 		double bagTotalTrainError = 0;
 		double bagTotalTestError = 0;
 		for(int i = 0; i < 5; i++) {
 			auto bagH = bag(trainingData, size);
-			bagTotalTrainError += classify(trainingData, bagH);
-			bagTotalTestError += classify(testData, bagH);
+			//bagTotalTrainError += classify(trainingData, bagH);
+			//bagTotalTestError += classify(testData, bagH);
 		}
 		bagTrainError.push_back(bagTotalTrainError / 5.0);
 		bagTestError.push_back(bagTotalTestError / 5.0);

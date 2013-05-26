@@ -249,7 +249,24 @@ ensemble bag(vector<example> trainingData, int ensembleSize) {
 
 // TODO: update 'hypothesis' input to be an actual ensemble (ie set of hypothesis-weight pairs)
 double classify(vector<example> testData, ensemble learnedEnsemble){
-
+	int testCorrect = 0;
+	for(auto thisExample : testData) {
+		double posVotes = 0;
+		double negVotes = 0;
+		for(int i = 0; i < learnedEnsemble.hypotheses.size(); i++) {
+			if((thisExample.features[learnedEnsemble.hypotheses[i].feature] == 1 && learnedEnsemble.hypotheses[i].inverted == false)
+				|| (thisExample.features[learnedEnsemble.hypotheses[i].feature] == 0 && learnedEnsemble.hypotheses[i].inverted == true)) {
+				posVotes += learnedEnsemble.weights[i];
+			}
+			else {
+				negVotes += learnedEnsemble.weights[i];
+			}
+		}
+		if((posVotes >= negVotes && thisExample.label == 1)
+			|| (posVotes < negVotes && thisExample.label == 0)) {
+			testCorrect++;
+		}
+	}
 
 	//double testError;
 	//int testCorrect = 0;
@@ -273,8 +290,7 @@ double classify(vector<example> testData, ensemble learnedEnsemble){
 	//	}
 	//}
 	//
-	//return (1.0 - (double)testCorrect / (double)testData.size());
-	return -1.0;
+	return (1.0 - (double)testCorrect / (double)testData.size());
 }
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -334,14 +350,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	vector<double> bagTestError;
 	for(int size = 5; size < 35; size += 5) {
 		auto boostH = boost(trainingData, size);
-		//boostTrainError.push_back(classify(trainingData, boostH));
-		//boostTestError.push_back(classify(testData, boostH));
+		boostTrainError.push_back(classify(trainingData, boostH));
+		boostTestError.push_back(classify(testData, boostH));
 		double bagTotalTrainError = 0;
 		double bagTotalTestError = 0;
 		for(int i = 0; i < 5; i++) {
 			auto bagH = bag(trainingData, size);
-			//bagTotalTrainError += classify(trainingData, bagH);
-			//bagTotalTestError += classify(testData, bagH);
+			bagTotalTrainError += classify(trainingData, bagH);
+			bagTotalTestError += classify(testData, bagH);
 		}
 		bagTrainError.push_back(bagTotalTrainError / 5.0);
 		bagTestError.push_back(bagTotalTestError / 5.0);

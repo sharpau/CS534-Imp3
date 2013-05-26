@@ -11,6 +11,31 @@
 
 using namespace std;
 
+struct hypothesis {
+	int feature;
+	bool inverted;
+
+	hypothesis(int f, bool i) :	feature(f), inverted(i)	{}
+
+	// default constructor
+	hypothesis() : feature(-1000), inverted(false) {}
+};
+
+struct example {
+	int label;
+	vector<int> features;
+
+	example(int l, vector<int> f) : label(l), features(f) {}
+};
+
+struct ensemble {
+	vector<hypothesis> hypotheses;
+	vector<double> weights;
+
+	ensemble(vector<hypothesis> h, vector<double> w) : hypotheses(h), weights(w) {}
+};
+
+
 /* input: 
 		bagging:
 			examples only
@@ -20,26 +45,26 @@ using namespace std;
 			weights on examples
  output: hypothesis [feature index and pos / neg]
  */
-pair<int, bool> decisionStump(vector<pair<int, vector<int>>> examples, vector<double> weights, double &error) {
+hypothesis decisionStump(vector<example> examples, vector<double> weights, double &error) {
 	assert(examples.size() == weights.size());
 	
 	double maxProbAdjusted = -1000000000;
 	int bestFeature = 0;
 	bool inverse = false;
 
-	for(int i = 0; i < examples[1].second.size(); i++){
+	for(int i = 0; i < examples[1].features.size(); i++){
 		// if feature true, increment trueClass[i] where i is class label.  Otherwise, increment falseClass[i].
 		// index 0 = false, index 1 = true
 		vector<double> trueClass(2,0);
 		vector<double> falseClass(2,0);
 
 		for(int j = 0; j < examples.size(); j++){
-			if(examples[j].second[i] == 0){
+			if(examples[j].features[i] == 0){
 				// factor in weights too?
-				falseClass[examples[j].first] += weights[j];
+				falseClass[examples[j].label] += weights[j];
 			}
 			else{
-				trueClass[examples[j].first] += weights[j];
+				trueClass[examples[j].label] += weights[j];
 			}
 		}
 		// calculate probabilities - posProbs for direct correlation, invProbs for inverse correlation
@@ -66,12 +91,12 @@ pair<int, bool> decisionStump(vector<pair<int, vector<int>>> examples, vector<do
 	}
 	
 	error = 1.0 - maxProbAdjusted;
-	return make_pair(bestFeature, inverse);
+	return hypothesis(bestFeature, inverse);
 }
 
 // inputs: training, ensemble size
 // output: ensemble of hypothesis-weight pairs
-pair<vector<pair<int, bool>>, vector<double>> boost(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
+ensemble boost(vector<example> trainingData, int ensembleSize) {
 	/*
 		for 0 to ensemble size
 			decision stump
@@ -79,10 +104,10 @@ pair<vector<pair<int, bool>>, vector<double>> boost(vector<pair<int, vector<int>
 			update weights
 			normalize weights
 	*/
-	vector<pair<int, bool>> vote;
+	vector<hypothesis> vote;
 	vector<double> voteWeight;
 	vector<double> weights(trainingData.size(), 1.0 / trainingData.size());
-	pair<int, bool> result;
+	hypothesis result;
 	double alpha;
 	for(int i = 0; i < ensembleSize; i++) {
 		double error = 0;
@@ -97,9 +122,9 @@ pair<vector<pair<int, bool>>, vector<double>> boost(vector<pair<int, vector<int>
 		double sum = 0;
 		for(int j = 0; j < trainingData.size(); j++) {
 			// check whether prediction was correct
-			if(!result.second) {
+			if(!result.inverted) {
 				// we predict using this feature
-				if(trainingData[j].first == trainingData[j].second[result.first]) {
+				if(trainingData[j].label == trainingData[j].features[result.feature]) {
 					// correct prediction
 					weights[j] *= exp(-1.0 * alpha);
 				}
@@ -110,7 +135,7 @@ pair<vector<pair<int, bool>>, vector<double>> boost(vector<pair<int, vector<int>
 			}
 			else {
 				// predict using inverse of feature
-				if(trainingData[j].first == !trainingData[j].second[result.first]) {
+				if(trainingData[j].label == !trainingData[j].features[result.feature]) {
 					// correct prediction
 					weights[j] *= exp(-1.0 * alpha);
 				}
@@ -126,7 +151,7 @@ pair<vector<pair<int, bool>>, vector<double>> boost(vector<pair<int, vector<int>
 			weights[j] /= sum;
 		}
 	}
-	return make_pair(vote, voteWeight);
+	return ensemble(vote, voteWeight);
 
 	// TODO: MOVE THIS CODE TO classify()
 	//vector<double> voteTotals(trainingData[1].second.size(), 0);
@@ -162,7 +187,7 @@ pair<vector<pair<int, bool>>, vector<double>> boost(vector<pair<int, vector<int>
 
 // inputs: test, ensemble size
 // output: ensemble of hypotheses, all weighted equally
-pair<vector<pair<int, bool>>, vector<double>> bag(vector<pair<int, vector<int>>> trainingData, int ensembleSize) {
+ensemble bag(vector<example> trainingData, int ensembleSize) {
 	/* for 0 to ensemble size
 			for 0 to example set size
 				pick random number from 0 to example set size
@@ -170,24 +195,24 @@ pair<vector<pair<int, bool>>, vector<double>> bag(vector<pair<int, vector<int>>>
 			decision stump
 		majority vote of ensemble
 	*/
-	vector<pair<int, vector<int>>> samples;
-	vector<vector<pair<int, vector<int>>>> ensemble(ensembleSize, samples);
-	vector<pair<int, bool>> vote;
+	vector<example> samples;
+	vector<vector<example>> ensembleSamples(ensembleSize, samples);
+	vector<hypothesis> vote;
 	vector<double> weights(trainingData.size(), 1.0/trainingData.size());
 	
 	for(int i = 0; i < ensembleSize; i++){
 		// create bootstrap sample
 		for(int j = 0; j < trainingData.size(); j++){
-			ensemble[i].push_back(trainingData[rand() % trainingData.size()]);
+			ensembleSamples[i].push_back(trainingData[rand() % trainingData.size()]);
 		}
 		// run learning algorithm (decision stump)
 		double error;
 		vector<double> dummyWeights(trainingData.size(), 1.0 / trainingData.size());
-		vote.push_back(decisionStump(ensemble[i], dummyWeights, error));
+		vote.push_back(decisionStump(ensembleSamples[i], dummyWeights, error));
 	}
 
 	vector<double> dummyVoteWeights(vote.size(), 1.0f/vote.size());
-	return make_pair(vote, dummyVoteWeights);
+	return ensemble(vote, dummyVoteWeights);
 	
 	// TODO: MOVE THIS CODE TO classify()
 	//vector<int> voteTotals(trainingData[1].second.size(), 0);
@@ -223,31 +248,33 @@ pair<vector<pair<int, bool>>, vector<double>> bag(vector<pair<int, vector<int>>>
 }
 
 // TODO: update 'hypothesis' input to be an actual ensemble (ie set of hypothesis-weight pairs)
-double classify(vector<pair<int, vector<int>>> testData, pair<int, bool> classifier){
+double classify(vector<example> testData, ensemble learnedEnsemble){
 
-	double testError;
-	int testCorrect = 0;
-	
-	// classify data
 
-	if(classifier.second == false){
-		// non-inverted
-		for(int i = 0; i < testData.size(); i++){
-			if(testData[i].first == testData[i].second[classifier.first]){
-				testCorrect++;
-			}
-		}
-	}
-	else{
-		// inverted
-		for(int i = 0; i < testData.size(); i++){
-			if(testData[i].first != testData[i].second[classifier.first]){
-				testCorrect++;
-			}
-		}
-	}
-	
-	return (1.0 - (double)testCorrect / (double)testData.size());
+	//double testError;
+	//int testCorrect = 0;
+	//
+	//// classify data
+
+	//if(classifier.second == false){
+	//	// non-inverted
+	//	for(int i = 0; i < testData.size(); i++){
+	//		if(testData[i].first == testData[i].second[classifier.first]){
+	//			testCorrect++;
+	//		}
+	//	}
+	//}
+	//else{
+	//	// inverted
+	//	for(int i = 0; i < testData.size(); i++){
+	//		if(testData[i].first != testData[i].second[classifier.first]){
+	//			testCorrect++;
+	//		}
+	//	}
+	//}
+	//
+	//return (1.0 - (double)testCorrect / (double)testData.size());
+	return -1.0;
 }
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -255,7 +282,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// init random seed
 	srand (time(NULL));
 	
-	vector<pair<int, vector<int>>> trainingData;
+	vector<example> trainingData;
 	// read in data
 	ifstream trainingFile("SPECT-train.csv");
 	// advance to data
@@ -275,10 +302,10 @@ int _tmain(int argc, _TCHAR* argv[])
 			trainingFile.get();
 			trainingFile >> x[i];
 		}
-		trainingData.push_back(make_pair(y, x));
+		trainingData.push_back(example(y, x));
 	}
 
-	vector<pair<int, vector<int>>> testData;
+	vector<example> testData;
 	// read in data
 	ifstream testFile("SPECT-test.csv");
 	// advance to data
@@ -297,7 +324,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			testFile.get();
 			testFile >> x[i];
 		}
-		testData.push_back(make_pair(y, x));
+		testData.push_back(example(y, x));
 	}
 
 	// TODO: update classify
